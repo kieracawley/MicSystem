@@ -1,11 +1,19 @@
+
 #include <ArduinoBLE.h>
 #include <PDM.h>
 #include <Arduino_BMI270_BMM150.h>
 
-// Decive name
 const char* nameOfPeripheral = "MicrophoneMonitor";
 const char* uuidOfService = "fff0";
 const char* uuidOfAccChar = "fff1";
+
+static const char channels = 1;
+static const int frequency = 16000;
+
+short sampleBuffer[512];
+volatile int samplesRead;
+int micValue = 0;  // Variable to store microphone value
+
 
 BLEService microphoneService(uuidOfService);
 
@@ -34,28 +42,30 @@ void loop() {
     while (central.connected()){
       float x, y, z;
       IMU.readAcceleration(x, y, z);
-
       String acc = String(x) + ", " + String(y) + ", " + String(z);
       accChar.writeValue(acc.c_str());
-      
-      Serial.print("X: "); Serial.print(x);
-      Serial.print(" Y: "); Serial.print(y);
-      Serial.print(" Z: "); Serial.println(z);
       delay(100);
+
+      if (samplesRead) {
+        for (int i = 0; i < samplesRead; i++) {
+          Serial.println(sampleBuffer[i]);
+        }
+        samplesRead = 0;      
+      }
     }
   }
 }
 
 void startIMU() {
   if (!IMU.begin()) {
-    Serial.println("Failed to initialize IMU!");
+    Serial.println("Failed to start IMU!");
     while (1);
   }
 }
 
 void startBLE() {
   if (!BLE.begin()){
-    Serial.println("Starting BLE failed!");
+    Serial.println("Failed to start BLE!");
     while (1);
   }
 }
